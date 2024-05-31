@@ -12,8 +12,25 @@
   "activationEvents": [
     "*"
   ],
+  "icon": "images/icon.png",
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "properties": {
+        "var-css-support": {
+          "type": "object",
+          "description": "配置",
+          "default": {
+            "entry": [],
+            "fileType": [
+              "scss",
+              "css",
+              "vue"
+            ]
+          }
+        }
+      }
+    },
     "languages": [
       {
         "id": "css",
@@ -36,7 +53,8 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "publish": "vsce package && vsce publish"
   },
   "devDependencies": {
     "@types/vscode": "^1.89.0",
