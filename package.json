@@ -1,7 +1,8 @@
 {
   "name": "vscode-uni-var-support",
   "displayName": "vscode-uni-var-support",
-  "description": "",
+  "description": "scss颜色变量提示",
+  "publisher": "ynqq",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.89.0"
@@ -9,6 +10,9 @@
   "categories": [
     "Other"
   ],
+  "repository": {
+    "url": "https://github.com/ynqq/vscode-uni-var-support"
+  },
   "activationEvents": [
     "*"
   ],
