@@ -27,7 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
         const colorInformations: vscode.ColorInformation[] = [];
 
         for (const variable of scssVariables) {
-          const regex = new RegExp(`\\${variable.name}(;|\n|\})`, "g");
+          const regex = new RegExp(`\\${variable.name}( *(!important)?.*)`, "g");
 
           let match;
           while ((match = regex.exec(text))) {
