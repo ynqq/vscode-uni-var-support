@@ -3,7 +3,7 @@
   "displayName": "vscode-uni-var-support",
   "description": "scss颜色变量提示",
   "publisher": "ynqq",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.89.0"
   },

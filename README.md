@@ -1,4 +1,5 @@
 # scss颜色变量提示
+![alt text](iShot_2024-11-12_10.32.00.gif)
 - 配置 settings.json
 ```json
  "var-css-support": {
