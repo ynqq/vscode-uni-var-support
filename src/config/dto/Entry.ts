@@ -2,7 +2,7 @@ import path from "path";
 import * as vscode from "vscode";
 
 export default class Entry {
-  _value: string[] = [];
+  private _value: string[] = [];
   get value() {
     return this._value;
   }

@@ -1,5 +1,5 @@
-export default class FileType {
-  private _value: string[] = ["scss", "css", "vue", "html"];
+export default class {
+  private _value: string[] = [];
   get value() {
     return this._value;
   }

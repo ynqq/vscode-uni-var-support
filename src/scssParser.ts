@@ -1,25 +1,48 @@
 import * as fs from "fs";
-import path from "node:path";
 import * as vscode from "vscode";
+import ColorVar from "./config/dto/ColorVar";
+import SizeVar from "./config/dto/SizeVar";
+import { ScssVariable, VarType } from "./types";
 
-export interface ScssVariable {
-  name: string;
-  value: string;
-  location: vscode.Location;
-}
+let allVar: VarType = {};
+const allVarObserve = () => {
+  allVar = { ...colorVar.value, ...sizeVar.value };
+};
+export const getAllVar = () => allVar;
 
-export function getScssVariables(filePathes: string[]): ScssVariable[] {
-  const variableRegex =
-    /\$([\w-]+):\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3}|rgba?\((\d{1,3},\s?){2,3}(\d*(\.)?\d*)\));/g;
-  const variables: ScssVariable[] = [];
+const colorVar = new ColorVar<VarType>({}, allVarObserve);
+const sizeVar = new SizeVar<VarType>({}, allVarObserve);
+
+export const getColorVar = () => colorVar.value;
+export const setColorVar = (val: VarType, reset?: boolean) => {
+  if (reset) {
+    colorVar.value = val;
+  } else {
+    colorVar.value = Object.assign(colorVar.value, val);
+  }
+};
+export const getSizeVar = () => sizeVar.value;
+export const setSizeVar = (val: VarType, reset?: boolean) => {
+  if (reset) {
+    sizeVar.value = val;
+  } else {
+    sizeVar.value = Object.assign(sizeVar.value, val);
+  }
+};
+
+export function getScssVariables(
+  filePathes: string[],
+  reg: RegExp
+): Record<string, ScssVariable> {
+  const variables: Record<string, ScssVariable> = {};
   filePathes.forEach((p) => {
     const filePath = p;
     const scssContent = fs.readFileSync(filePath, "utf-8");
-
     let match;
-    while ((match = variableRegex.exec(scssContent))) {
+    while ((match = reg.exec(scssContent))) {
+      const name = "$" + match[1];
       const variable: ScssVariable = {
-        name: '$' + match[1],
+        name: name,
         value: match[2],
         location: new vscode.Location(
           vscode.Uri.file(filePath),
@@ -29,16 +52,16 @@ export function getScssVariables(filePathes: string[]): ScssVariable[] {
           )
         ),
       };
-      variables.push(variable);
+      variables[name] = variable;
     }
   });
 
   return variables;
 }
 
-export const getVariableMap = (filePathes: string[]) => {
-  return getScssVariables(filePathes).reduce((acc, variable) => {
-    acc[`${variable.name}`] = variable;
-    return acc;
-  }, {} as { [key: string]: ScssVariable });
+export const getVariableMap = (
+  filePathes: string[],
+  reg: RegExp
+): Record<string, ScssVariable> => {
+  return getScssVariables(filePathes, reg);
 };

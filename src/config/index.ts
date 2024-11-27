@@ -2,19 +2,16 @@ import * as vscode from "vscode";
 import Entry from "./dto/Entry";
 import FileType from "./dto/FileType";
 import * as fs from "fs";
-import { getScssVariables } from "../scssParser";
-
-export const COLOR_DICT = [
-  "background",
-  "background-color",
-  "color",
-  "border",
-  "border-color",
-  "box-shadow",
-];
+import { getScssVariables, setColorVar, setSizeVar } from "../scssParser";
+import { COLOR_VAR_REG, SIZE_VAR_REG } from "./const";
+import ColorType from "./dto/ColorType";
+import SizeType from "./dto/SizeType";
+import { IConfigValue } from "../types";
 
 export const entryDto = new Entry();
 export const fileTypeDto = new FileType();
+export const colorDto = new ColorType();
+export const sizeDto = new SizeType();
 
 export function hexToColor(hex: string): vscode.Color {
   let r,
@@ -62,38 +59,57 @@ export function colorToHex(color: vscode.Color): string {
   return `#${r}${g}${b}`;
 }
 
-interface IConfigValue {
-  entry: string[];
-  fileType: string[];
-}
-
 export const getSettingData = () => {
   // 获取setting.json
   const settingData = vscode.workspace.getConfiguration("var-css-support");
   const result: IConfigValue = {} as IConfigValue;
-  const keys: (keyof IConfigValue)[] = ["entry", "fileType"];
+  const keys: (keyof IConfigValue)[] = ["entry", "fileType", "colors", "size"];
   keys.forEach((key) => {
     if (settingData.get(key)) {
       result[key] = settingData.get(key)!;
     }
   });
+  const allSetting = vscode.workspace.getConfiguration("");
+  if (allSetting) {
+    result.colors = allSetting.get("var-css-colors") || [];
+  }
+  if (allSetting) {
+    result.size = allSetting.get("var-css-size") || [];
+  }
   return result;
 };
 
 export const init = () => {
-  const { entry, fileType } = getSettingData();
+  const { entry, fileType, colors, size } = getSettingData();
   if (entry !== undefined) {
     entryDto.value = entry;
   }
   if (fileType !== undefined) {
     fileTypeDto.value = fileType;
   }
+  if (colors !== undefined) {
+    colorDto.value = colors;
+  }
+  if (size !== undefined) {
+    sizeDto.value = size;
+  }
+
+  getModuleVars(entryDto.value);
+};
+
+export const getModuleVars = (p: string[]) => {
+  const colorVars = getScssVariables(p, COLOR_VAR_REG);
+  setColorVar(colorVars);
+  const sizeVars = getScssVariables(p, SIZE_VAR_REG);
+  setSizeVar(sizeVars);
 };
 
 export const watchFile = () => {
   entryDto.value.forEach((p) => {
     fs.watchFile(p, async () => {
-      getScssVariables(entryDto.value);
+      setColorVar({}, true);
+      setSizeVar({}, true);
+      getModuleVars(entryDto.value);
     });
   });
 };

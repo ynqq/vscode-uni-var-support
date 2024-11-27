@@ -1,14 +1,14 @@
 import * as vscode from "vscode";
-import { getScssVariables, getVariableMap } from "./scssParser";
+import { getAllVar, getColorVar, getSizeVar } from "./scssParser";
 import {
-  COLOR_DICT,
   fileTypeDto,
   colorToHex,
-  entryDto,
   hexToColor,
   init,
   watchFile,
   unWatchFile,
+  colorDto,
+  sizeDto,
 } from "./config";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -16,18 +16,22 @@ export function activate(context: vscode.ExtensionContext) {
   watchFile();
 
   // 在css值前面增加颜色块
-  const colorProvider = vscode.languages.registerColorProvider(
+  const colorProvide = vscode.languages.registerColorProvider(
     fileTypeDto.value,
     {
       provideDocumentColors(
         document: vscode.TextDocument
       ): vscode.ProviderResult<vscode.ColorInformation[]> {
-        const scssVariables = getScssVariables(entryDto.value);
+        const scssVariables = getColorVar();
         const text = document.getText();
         const colorInformations: vscode.ColorInformation[] = [];
 
-        for (const variable of scssVariables) {
-          const regex = new RegExp(`\\${variable.name}( *(!important)?.*)`, "g");
+        for (const key in scssVariables) {
+          const variable = scssVariables[key];
+          const regex = new RegExp(
+            `\\${variable.name}( *(!important)?.*)`,
+            "g"
+          );
 
           let match;
           while ((match = regex.exec(text))) {
@@ -52,6 +56,46 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
+  // css值前面增加尺寸大小
+  const sizeProvide = vscode.languages.registerCodeLensProvider(
+    fileTypeDto.value,
+    {
+      provideCodeLenses(
+        document: vscode.TextDocument
+      ): vscode.ProviderResult<vscode.CodeLens[]> {
+        const scssVariables = getSizeVar();
+        const codeLenses: vscode.CodeLens[] = [];
+        const text = document.getText();
+        for (const key in scssVariables) {
+          const variable = scssVariables[key];
+          const regex = new RegExp(
+            `\\${variable.name}( *(!important)?.*)`,
+            "g"
+          );
+
+          let match: RegExpExecArray | null;
+          while ((match = regex.exec(text))) {
+            const startPos = document.positionAt(match.index);
+            const endPos = document.positionAt(match.index + match[0].length);
+            const range = new vscode.Range(startPos, endPos);
+
+            const variableValue = variable.value;
+
+            // 添加 CodeLens
+            codeLenses.push(
+              new vscode.CodeLens(range, {
+                title: `${variable.name}: ${variableValue}`,
+                command: "",
+              })
+            );
+          }
+        }
+
+        return codeLenses;
+      },
+    }
+  );
+
   /**
    * 点击跳转到源代码位置
    */
@@ -65,7 +109,8 @@ export function activate(context: vscode.ExtensionContext) {
         const wordRange = document.getWordRangeAtPosition(position, /\$[\w-]+/);
         if (wordRange) {
           const variableName = document.getText(wordRange);
-          const variable = getVariableMap(entryDto.value)[variableName];
+          const vals = getAllVar();
+          const variable = vals[variableName];
 
           if (variable) {
             return variable.location;
@@ -75,7 +120,44 @@ export function activate(context: vscode.ExtensionContext) {
       },
     }
   );
+  /**
+   * 尺寸 提示
+   */
+  const completionSizeProvider =
+    vscode.languages.registerCompletionItemProvider(
+      fileTypeDto.value,
+      {
+        provideCompletionItems(
+          document: vscode.TextDocument,
+          position: vscode.Position
+        ): vscode.CompletionItem[] {
+          const linePrefix = document
+            .lineAt(position)
+            .text.substr(0, position.character);
+          if (sizeDto.value.every((v) => !linePrefix.includes(v))) {
+            return [];
+          }
+          const variableMap = getSizeVar();
 
+          return Object.keys(variableMap).map((varName) => {
+            const variable = variableMap[varName];
+            const completionItem = new vscode.CompletionItem(
+              varName,
+              vscode.CompletionItemKind.Value
+            );
+            completionItem.insertText = linePrefix.includes("$")
+              ? varName.replace("$", "")
+              : varName;
+            completionItem.detail = variable.value;
+            completionItem.documentation = new vscode.MarkdownString(
+              `${variable.value}`
+            );
+            return completionItem;
+          });
+        },
+      },
+      "$"
+    );
   /**
    * 校验输入color..时出现提示
    */
@@ -89,10 +171,10 @@ export function activate(context: vscode.ExtensionContext) {
         const linePrefix = document
           .lineAt(position)
           .text.substr(0, position.character);
-        if (!COLOR_DICT.some((v) => linePrefix.includes(v))) {
+        if (!colorDto.value.some((v) => linePrefix.includes(v))) {
           return [];
         }
-        const variableMap = getVariableMap(entryDto.value);
+        const variableMap = getColorVar();
         return Object.keys(variableMap).map((varName) => {
           const variable = variableMap[varName];
           const completionItem = new vscode.CompletionItem(
@@ -117,20 +199,14 @@ export function activate(context: vscode.ExtensionContext) {
     "$" // Trigger completion when '$' is typed
   );
 
-  // const openScssDefinition = vscode.commands.registerCommand(
-  //   "extension.openScssDefinition",
-  //   (location: vscode.Location) => {
-  //     vscode.window.showTextDocument(location.uri, {
-  //       selection: location.range,
-  //     });
-  //   }
-  // );
-
   context.subscriptions.push(
-    colorProvider,
-    definitionProvider,
-    completionProvider
-    // openScssDefinition
+    ...[
+      colorProvide,
+      sizeProvide,
+      definitionProvider,
+      completionSizeProvider,
+      completionProvider,
+    ]
   );
 }
 
