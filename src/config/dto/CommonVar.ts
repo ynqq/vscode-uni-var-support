@@ -1,4 +1,4 @@
-export default class ColorVar<T extends Record<string, unknown>> {
+export default class CommonVar<T extends Record<string, unknown>> {
   private _value: T;
   private observe: () => void;
   constructor(val: T, observe: () => void) {

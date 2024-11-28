@@ -1,5 +1,12 @@
 import * as vscode from "vscode";
-import { getAllVar, getColorVar, getSizeVar } from "./scssParser";
+import {
+  getAllNativeVar,
+  getAllVar,
+  getColorVar,
+  getNativeColorVar,
+  getNativeSizeVar,
+  getSizeVar,
+} from "./scssParser";
 import {
   fileTypeDto,
   colorToHex,
@@ -9,7 +16,10 @@ import {
   unWatchFile,
   colorDto,
   sizeDto,
+  showColorVar,
+  enableNativeCssVar,
 } from "./config";
+import tinycolor from "tinycolor2";
 
 export function activate(context: vscode.ExtensionContext) {
   init();
@@ -23,22 +33,32 @@ export function activate(context: vscode.ExtensionContext) {
         document: vscode.TextDocument
       ): vscode.ProviderResult<vscode.ColorInformation[]> {
         const scssVariables = getColorVar();
+        if (enableNativeCssVar.value) {
+          Object.assign(scssVariables, getNativeColorVar());
+        }
+
         const text = document.getText();
         const colorInformations: vscode.ColorInformation[] = [];
 
         for (const key in scssVariables) {
           const variable = scssVariables[key];
           const regex = new RegExp(
-            `\\${variable.name}( *(!important)?.*)`,
+            `\\${variable.name}(?![a-zA-Z0-9-_])( *(!important)?.*)`,
             "g"
           );
-
           let match;
           while ((match = regex.exec(text))) {
-            const startPos = document.positionAt(match.index);
+            const beforeText = text.slice(match.index - 4, match.index);
+
+            const isVar = beforeText === "var(";
+            let startPos = document.positionAt(match.index);
             const endPos = document.positionAt(match.index + match[0].length);
+            if (isVar) {
+              startPos = startPos.translate(0, -4);
+            }
             const range = new vscode.Range(startPos, endPos);
-            const color = hexToColor(variable.value);
+            const color = hexToColor(variable.hexValue || variable.value);
+
             colorInformations.push(new vscode.ColorInformation(range, color));
           }
         }
@@ -56,20 +76,27 @@ export function activate(context: vscode.ExtensionContext) {
     }
   );
 
-  // css值前面增加尺寸大小
+  // css值前面增加 尺寸/颜色 值
   const sizeProvide = vscode.languages.registerCodeLensProvider(
     fileTypeDto.value,
     {
       provideCodeLenses(
         document: vscode.TextDocument
       ): vscode.ProviderResult<vscode.CodeLens[]> {
-        const scssVariables = getSizeVar();
+        const scssVariables = showColorVar.value ? getAllVar() : getSizeVar();
+        if (enableNativeCssVar.value) {
+          if (showColorVar.value) {
+            Object.assign(scssVariables, getAllNativeVar());
+          } else {
+            Object.assign(scssVariables, getNativeSizeVar());
+          }
+        }
         const codeLenses: vscode.CodeLens[] = [];
         const text = document.getText();
         for (const key in scssVariables) {
           const variable = scssVariables[key];
           const regex = new RegExp(
-            `\\${variable.name}( *(!important)?.*)`,
+            `\\${variable.name}(?![a-zA-Z0-9-_])( *(!important)?.*)`,
             "g"
           );
 
@@ -106,10 +133,16 @@ export function activate(context: vscode.ExtensionContext) {
         document: vscode.TextDocument,
         position: vscode.Position
       ): vscode.ProviderResult<vscode.Definition> {
-        const wordRange = document.getWordRangeAtPosition(position, /\$[\w-]+/);
+        const wordRange = document.getWordRangeAtPosition(
+          position,
+          /(((\$)|(\-\-))[\w-]+)/
+        );
         if (wordRange) {
           const variableName = document.getText(wordRange);
           const vals = getAllVar();
+          if (enableNativeCssVar.value) {
+            Object.assign(vals, getAllNativeVar());
+          }
           const variable = vals[variableName];
 
           if (variable) {
@@ -137,7 +170,14 @@ export function activate(context: vscode.ExtensionContext) {
           if (sizeDto.value.every((v) => !linePrefix.includes(v))) {
             return [];
           }
-          const variableMap = getSizeVar();
+          let variableMap = getSizeVar();
+          if (enableNativeCssVar.value) {
+            if (linePrefix.includes("var(")) {
+              variableMap = Object.assign(getNativeSizeVar(), variableMap);
+            } else {
+              Object.assign(variableMap, getNativeSizeVar());
+            }
+          }
 
           return Object.keys(variableMap).map((varName) => {
             const variable = variableMap[varName];
@@ -156,6 +196,7 @@ export function activate(context: vscode.ExtensionContext) {
           });
         },
       },
+      "var",
       "$"
     );
   /**
@@ -171,10 +212,19 @@ export function activate(context: vscode.ExtensionContext) {
         const linePrefix = document
           .lineAt(position)
           .text.substr(0, position.character);
+
         if (!colorDto.value.some((v) => linePrefix.includes(v))) {
           return [];
         }
-        const variableMap = getColorVar();
+        let variableMap = getColorVar();
+        if (enableNativeCssVar.value) {
+          if (linePrefix.includes("var(")) {
+            variableMap = Object.assign(getNativeColorVar(), variableMap);
+          } else {
+            Object.assign(variableMap, getNativeColorVar());
+          }
+        }
+
         return Object.keys(variableMap).map((varName) => {
           const variable = variableMap[varName];
           const completionItem = new vscode.CompletionItem(
@@ -186,17 +236,22 @@ export function activate(context: vscode.ExtensionContext) {
             ? varName.replace("$", "")
             : varName;
           completionItem.detail = variable.value;
+          const tipColor = variable.hexValue || variable.value;
+
           completionItem.documentation = new vscode.MarkdownString(
-            `![color](https://dummyimage.com/10x10/${variable.value.substring(
+            `![color](https://dummyimage.com/10x10/${tipColor.substring(
               1
-            )}/${variable.value.substring(1)}.png) ${variable.value}`
+            )}/${tipColor.substring(1)}.png) ${tinycolor(
+              tipColor
+            ).toRgbString()}`
           );
 
           return completionItem;
         });
       },
     },
-    "$" // Trigger completion when '$' is typed
+    "$",
+    "var"
   );
 
   context.subscriptions.push(
