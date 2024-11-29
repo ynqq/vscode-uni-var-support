@@ -1,7 +1,7 @@
 # 提示 scss和css 颜色/尺寸变量
 
-![alt text](iShot_2024-11-12_10.32.00.gif)
-![alt text](image-1.png)
+![alt text](assets/iShot_2024-11-12_10.32.00.gif)
+![alt text](assets/image-1.png)
 
 - 配置 settings.json
 
