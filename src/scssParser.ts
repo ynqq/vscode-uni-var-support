@@ -107,7 +107,7 @@ export function getScssVariables(
           scssContent.substring(0, match.index).lastIndexOf("\n"),
           match.index + scssContent.substring(match.index).indexOf("\n")
         );
-        if (!lineStr.includes("//")) {
+        if (!lineStr.trim().startsWith("//")) {
           const variable: ScssVariable = {
             name: name,
             value: match[2],
@@ -116,7 +116,7 @@ export function getScssVariables(
           variables[name] = variable;
         }
       }
-      result[index] = variables;
+      Object.assign(result[index], variables);
     });
   });
 

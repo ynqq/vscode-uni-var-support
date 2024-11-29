@@ -84,6 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
         document: vscode.TextDocument
       ): vscode.ProviderResult<vscode.CodeLens[]> {
         const scssVariables = showColorVar.value ? getAllVar() : getSizeVar();
+        
         if (enableNativeCssVar.value) {
           if (showColorVar.value) {
             Object.assign(scssVariables, getAllNativeVar());

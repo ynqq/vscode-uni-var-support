@@ -120,6 +120,7 @@ export const getModuleVars = (p: string[]) => {
   }
   const [colorVars, sizeVars, nativeColorVars, nativeSizeVars] =
     getScssVariables(p, regs);
+
   setColorVar(colorVars);
   setSizeVar(sizeVars);
   if (Object.keys(nativeColorVars || {}).length) {
