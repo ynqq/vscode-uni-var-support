@@ -1,7 +1,7 @@
 {
   "name": "vscode-uni-var-support",
   "displayName": "vscode-uni-var-support",
-  "description": "scss颜色变量提示",
+  "description": "提示 scss和css 颜色/尺寸变量",
   "publisher": "ynqq",
   "version": "0.0.5",
   "engines": {

@@ -1,4 +1,4 @@
-# scss 颜色变量提示
+# 提示 scss和css 颜色/尺寸变量
 
 ![alt text](iShot_2024-11-12_10.32.00.gif)
 ![alt text](image-1.png)
@@ -10,6 +10,7 @@
   "var-css-support": {
     "entry": ["/src/assets/sass/_variable.scss"], // 变量源文件
     "colorValShow": true, // 是否将颜色值显示出来
+    "enableNativeVar": true, // 是否包含css变量
     "fileType": [
       //需要检测的文件类型
       "scss",
