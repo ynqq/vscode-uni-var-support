@@ -38,7 +38,7 @@ export const enableNativeCssVar = new Common(true);
  */
 export function hexToColor(hex: string): vscode.Color {
   const { r, g, b, a } = Tinycolor(hex).toRgb();
-  return new vscode.Color(r!, g!, b!, a!);
+  return new vscode.Color(r / 255, g / 255, b / 255, a);
 }
 
 /**
