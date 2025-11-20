@@ -6,6 +6,7 @@ export interface ScssVariable {
   /**十六进制色值 */
   hexValue?: string;
   location: vscode.Location;
+  remark: string;
 }
 /**保存的变量类型 */
 export type VarType = Record<string, ScssVariable>;
@@ -17,5 +18,5 @@ export interface IConfigValue {
   fileType: string[];
   colors: string[];
   size: string[];
-  enableNativeVar: boolean
+  enableNativeVar: boolean;
 }

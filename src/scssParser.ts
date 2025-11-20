@@ -82,6 +82,21 @@ export const setNativeSizeVar = (val: VarType, reset?: boolean) => {
     nativeSizeVar.value = Object.assign(nativeSizeVar.value, val);
   }
 };
+const varReg = /(--.+|\$.+):\s*var\((.*)\);/g;
+
+const $reg = /(\$.+):\s*(\$.+);/g;
+
+const getAnnotation = (lineText: string, lineStr: string) => {
+  if (lineStr.includes("//")) {
+    return lineStr.replace(/.*\/\/\s*(.*)/, "$1");
+  }
+  if (/^(\s*)\/(\*|\/)/.test(lineText)) {
+    return lineText
+      .replace(/\/\/(.*)/, "$1")
+      .replace(/\/\*+\s*(.+?)\s*\**\//, "$1");
+  }
+  return "";
+};
 
 export function getScssVariables(
   filePathes: string[],
@@ -103,17 +118,85 @@ export function getScssVariables(
           scssContent.substring(0, match.index).split("\n").length - 1,
           match.index - scssContent.lastIndexOf("\n", match.index) - 1
         );
+        const prevLineText = scssContent
+          .substring(0, match.index)
+          .split("\n")
+          .at(-2);
+
         const lineStr = scssContent.substring(
           scssContent.substring(0, match.index).lastIndexOf("\n"),
           match.index + scssContent.substring(match.index).indexOf("\n")
         );
         if (!lineStr.trim().startsWith("//")) {
+          const remark = getAnnotation(prevLineText || "", lineStr);
           const variable: ScssVariable = {
             name: name,
             value: match[2],
             location: new vscode.Location(vscode.Uri.file(filePath), linePos),
+            remark: remark,
           };
           variables[name] = variable;
+        }
+      }
+      while ((match = varReg.exec(scssContent))) {
+        const attrName = match[1];
+        const [varName, varDefaultVal] = match[2]
+          .split(",")
+          .map((v) => v.trim());
+
+        const linePos = new vscode.Position(
+          scssContent.substring(0, match.index).split("\n").length - 1,
+          match.index - scssContent.lastIndexOf("\n", match.index) - 1
+        );
+        const lineStr = scssContent.substring(
+          scssContent.substring(0, match.index).lastIndexOf("\n"),
+          match.index + scssContent.substring(match.index).indexOf("\n")
+        );
+
+        if (!lineStr.trim().startsWith("//")) {
+          if (variables[varName]) {
+            const prevLineText = scssContent
+              .substring(0, match.index)
+              .split("\n")
+              .at(-2);
+            const remark = getAnnotation(prevLineText || "", lineStr);
+            variables[attrName] = {
+              ...variables[varName],
+              remark: remark || variables[varName].remark,
+              name: attrName,
+              location: new vscode.Location(vscode.Uri.file(filePath), linePos),
+            };
+          }
+        }
+      }
+
+      while ((match = $reg.exec(scssContent))) {
+        const attrName = match[1];
+        const varName = match[2];
+        const linePos = new vscode.Position(
+          scssContent.substring(0, match.index).split("\n").length - 1,
+          match.index - scssContent.lastIndexOf("\n", match.index) - 1
+        );
+
+        const lineStr = scssContent.substring(
+          scssContent.substring(0, match.index).lastIndexOf("\n"),
+          match.index + scssContent.substring(match.index).indexOf("\n")
+        );
+
+        if (lineStr && !lineStr.trim().startsWith("//")) {
+          if (variables[varName]) {
+            const prevLineText = scssContent
+              .substring(0, match.index)
+              .split("\n")
+              .at(-2);
+            const remark = getAnnotation(prevLineText || "", lineStr);
+            variables[attrName] = {
+              ...variables[varName],
+              remark: remark || variables[varName].remark,
+              name: attrName,
+              location: new vscode.Location(vscode.Uri.file(filePath), linePos),
+            };
+          }
         }
       }
       Object.assign(result[index], variables);

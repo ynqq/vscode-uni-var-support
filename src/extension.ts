@@ -84,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
         document: vscode.TextDocument
       ): vscode.ProviderResult<vscode.CodeLens[]> {
         const scssVariables = showColorVar.value ? getAllVar() : getSizeVar();
-        
+
         if (enableNativeCssVar.value) {
           if (showColorVar.value) {
             Object.assign(scssVariables, getAllNativeVar());
@@ -112,7 +112,7 @@ export function activate(context: vscode.ExtensionContext) {
             // 添加 CodeLens
             codeLenses.push(
               new vscode.CodeLens(range, {
-                title: `${variable.name}: ${variableValue}`,
+                title: `${variable.remark || variable.name}: ${variableValue}`,
                 command: "",
               })
             );
@@ -193,6 +193,7 @@ export function activate(context: vscode.ExtensionContext) {
             completionItem.documentation = new vscode.MarkdownString(
               `${variable.value}`
             );
+            completionItem.documentation.appendText(`: ${variable.remark}`);
             return completionItem;
           });
         },
@@ -246,6 +247,7 @@ export function activate(context: vscode.ExtensionContext) {
               tipColor
             ).toRgbString()}`
           );
+          completionItem.documentation.appendText(`: ${variable.remark}`);
 
           return completionItem;
         });

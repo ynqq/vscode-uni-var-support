@@ -3,7 +3,7 @@
   "displayName": "vscode-uni-var-support",
   "description": "提示 scss和css 颜色/尺寸变量",
   "publisher": "ynqq",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -142,7 +142,7 @@
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "vscode-test",
-    "publish": "vsce package && vsce publish"
+    "p": "vsce package && vsce publish"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.6",
